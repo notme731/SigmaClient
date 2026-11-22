@@ -1,1 +1,30 @@
-
+name: build
+on: [push, workflow_dispatch]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - name: Assemble project
+        run: |
+          T=$(ls *.zip | grep -v trainingkit-batch1 | head -n1)
+          mkdir work kit
+          unzip -q "$T" -d work
+          unzip -q trainingkit-batch1.zip -d kit
+          G=$(dirname "$(find work -name gradlew | head -n1)")
+          rm -rf "$G/src"
+          cp -r kit/trainingkit/src "$G/src"
+          echo "$G" > gdir.txt
+      - name: Build
+        run: |
+          cd "$(cat gdir.txt)"
+          chmod +x gradlew
+          ./gradlew build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mod
+          path: work/**/build/libs/*.jar
